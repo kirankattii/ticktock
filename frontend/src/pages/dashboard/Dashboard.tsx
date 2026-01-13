@@ -396,8 +396,6 @@ export default function Dashboard() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                totalItems={totalFilteredItems}
-                itemsPerPage={itemsPerPage}
                 onPageChange={setCurrentPage}
               />
             </div>
