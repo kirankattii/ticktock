@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, parseISO, addDays, isAfter, isBefore, isWithinInterval } from "date-fns";
+import { parseISO, addDays, isAfter, isBefore, isWithinInterval } from "date-fns";
 import Filter from "./components/Filter";
 import Table, { type TableColumn } from "./components/Table";
 import Navbar from "../../components/Navbar";
 import CreateWeekModal from "./components/CreateWeekModal";
 import Pagination from "../../components/Pagination";
+import StatusBadge from "../../components/StatusBadge";
+import { formatWeekRange } from "../../utils/dateFormat";
 import { getAllWeeklyTimesheets, createWeeklyTimesheet, type WeeklyTimesheet } from "../../services/timesheet.service";
 import { Plus } from "lucide-react";
 
@@ -98,15 +100,25 @@ export default function Dashboard() {
       return dateA - dateB;
     });
 
-    let rows = sortedForWeekIndex.map((ts, index) => ({
-      id: ts._id,
-      week: index + 1,
-      date: ts.weekStartDate,
-      weekEndDate: ts.weekEndDate,
-      status: getStatusFromTimesheet(ts),
-      totalHours: ts.totalHours || 0,
-      action: "View",
-    }));
+    let rows = sortedForWeekIndex.map((ts, index) => {
+      const status = getStatusFromTimesheet(ts);
+      let action = "View";
+      if (status === "missing") {
+        action = "Create";
+      } else if (status === "incomplete") {
+        action = "Update";
+      }
+      
+      return {
+        id: ts._id,
+        week: index + 1,
+        date: ts.weekStartDate,
+        weekEndDate: ts.weekEndDate,
+        status: status,
+        totalHours: ts.totalHours || 0,
+        action: action,
+      };
+    });
 
     // Step 2: Apply date filter
     if (startDate || endDate) {
@@ -217,7 +229,7 @@ export default function Dashboard() {
 
     {
       key: "week",
-      header: "WEEK",
+      header: "WEEK #",
       sortable: true,
       align: "left",
     },
@@ -260,17 +272,7 @@ export default function Dashboard() {
       header: "START DATE",
       sortable: true,
       align: "left",
-      render: (value: string, row: TimesheetRow) => {
-        const startDate = parseISO(value);
-        const endDate = row.weekEndDate ? parseISO(row.weekEndDate) : addDays(startDate, 6);
-
-        // Format: "1 - 6 January 2026"
-        const startDay = format(startDate, "d");
-        const endDay = format(endDate, "d");
-        const monthYear = format(startDate, "MMMM yyyy");
-
-        return `${startDay} - ${endDay} ${monthYear}`;
-      },
+      render: (value: string, row: TimesheetRow) => formatWeekRange(value, row.weekEndDate),
     },
 
     {
@@ -287,21 +289,7 @@ export default function Dashboard() {
       header: "STATUS",
       sortable: true,
       align: "center",
-      render: (value: string) => {
-        const statusColors: Record<string, string> = {
-          completed: "bg-green-100 text-green-800",
-          incomplete: "bg-yellow-100 text-yellow-800",
-          missing: "bg-red-100 text-red-800",
-        };
-        return (
-          <span
-            className={`px-2 py-1 text-xs font-medium rounded-xl ${statusColors[value] || "bg-gray-100 text-gray-800"
-              }`}
-          >
-            {value.charAt(0).toUpperCase() + value.slice(1)}
-          </span>
-        );
-      },
+      render: (value: string) => <StatusBadge status={value} />,
     },
     {
       key: "action",
@@ -352,7 +340,6 @@ export default function Dashboard() {
               setStatus(value);
             }}
           />
-
           {/* Table Component */}
           <Table
             data={paginatedRows}
@@ -364,9 +351,13 @@ export default function Dashboard() {
             sortDirection={sortDirection}
           />
 
+        </div>
+
+        
           {/* Rows Per Page Selector and Pagination */}
+          <div className="shadow-md rounded-lg mx-auto p-3 mt-4">
           {!loading && totalFilteredItems > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-white border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white">
               {/* Rows Per Page Selector and Results Info */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -377,12 +368,12 @@ export default function Dashboard() {
                     id="rowsPerPage"
                     value={itemsPerPage}
                     onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                    className="px-3 py-1.5 text-sm border border-gray-600 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-gray-600"
                   >
-                    <option value={5}>5</option>
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
+                    <option value={5} className="text-gray-600">5</option>
+                    <option value={10} className="text-gray-600">10</option>
+                    <option value={20} className="text-gray-600">20</option>
+                    <option value={50} className="text-gray-600">50</option>
                   </select>
                 </div>
                 <div className="text-sm text-gray-700">
@@ -400,7 +391,7 @@ export default function Dashboard() {
               />
             </div>
           )}
-        </div>
+          </div>
       </div>
 
       {showCreateModal && (

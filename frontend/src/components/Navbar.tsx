@@ -1,8 +1,9 @@
 import ConfirmationModal from "./ConfirmationModal";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { ChevronDown } from "lucide-react";
+import { useClickOutside } from "../hooks/useClickOutside";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -18,17 +19,9 @@ export default function Navbar() {
     navigate("/login");
   };
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpenProfile(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  useClickOutside<HTMLElement>(dropdownRef as RefObject<HTMLElement>, () => {
+    setOpenProfile(false);
+  });
 
   return (
     <>

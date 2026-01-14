@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import Button from "../../components/Button";
+import Input from "../../components/Input";
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -8,8 +10,15 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register, user } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect to dashboard if user is already logged in
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,51 +46,33 @@ export default function Login() {
           
           <form onSubmit={handleSubmit} className="space-y-4">
             {isSignUp && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-900 mb-2">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  required={isSignUp}
-                />
-              </div>
+              <Input
+                label="Name"
+                type="text"
+                placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required={isSignUp}
+              />
             )}
             
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-900 mb-2">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-              />
-            </div>
+            <Input
+              label="Email"
+              type="email"
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
             
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-900 mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                required
-              />
-            </div>
+            <Input
+              label="Password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
             
             {!isSignUp && (
               <div className="flex items-center">
@@ -96,13 +87,14 @@ export default function Login() {
               </div>
             )}
             
-            <button
+            <Button
               type="submit"
-              disabled={loading}
-              className="cursor-pointer w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              loading={loading}
+              loadingText="Please wait..."
+              fullWidth
             >
-              {loading ? "Please wait..." : isSignUp ? "Sign up" : "Sign in"}
-            </button>
+              {isSignUp ? "Sign up" : "Sign in"}
+            </Button>
           </form>
           
           <div className="mt-4 text-center">

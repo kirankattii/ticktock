@@ -1,5 +1,8 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
+import Modal from "../../../components/Modal";
+import Input from "../../../components/Input";
+import Button from "../../../components/Button";
 
 type Props = {
   onClose: () => void;
@@ -81,66 +84,49 @@ export default function CreateWeekModal({ onClose, onSubmit, existingWeeks }: Pr
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-xl bg-white shadow-lg">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Create New Week</h2>
-          <button
-            onClick={onClose}
-            className="cursor-pointer text-gray-400 hover:text-gray-600 text-xl"
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title="Create New Week"
+      size="md"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Input
+          label="Week Start Date (Monday)"
+          type="date"
+          value={weekStartDate}
+          onChange={(e) => handleStartDateChange(e.target.value)}
+          required
+          helperText="Select any date in the week, it will automatically set to Monday"
+        />
+
+        <Input
+          label="Week End Date (Sunday)"
+          type="date"
+          value={weekEndDate}
+          onChange={(e) => setWeekEndDate(e.target.value)}
+          required
+        />
+
+        <div className="flex gap-3 pt-2">
+          <Button
+            type="submit"
+            loading={loading}
+            loadingText="Creating..."
+            fullWidth
           >
-            ×
-          </button>
+            Create Week
+          </Button>
+          <Button
+            type="button"
+            onClick={onClose}
+            variant="ghost"
+            fullWidth
+          >
+            Cancel
+          </Button>
         </div>
-
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Week Start Date (Monday) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={weekStartDate}
-              onChange={(e) => handleStartDateChange(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Select any date in the week, it will automatically set to Monday
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Week End Date (Sunday) <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="date"
-              value={weekEndDate}
-              onChange={(e) => setWeekEndDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className="cursor-pointer flex-1 rounded-lg bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
-              {loading ? "Creating..." : "Create Week"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="cursor-pointer flex-1 rounded-lg border border-gray-300 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }

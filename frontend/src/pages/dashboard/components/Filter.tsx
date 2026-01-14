@@ -1,6 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import DateRangePicker from "../../../components/DateRangePicker";
+import { STATUS_OPTIONS } from "../../../constants/filter";
 
 interface FilterFormData {
   status: string;
@@ -52,35 +53,28 @@ export default function Filter({
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-6">
       {/* Date Range Picker */}
-      <div className="flex-1">
-        <label htmlFor="dateRange" className="block text-sm font-medium text-gray-700 mb-1">
-          Date Range
-        </label>
+      <div className="">
+        
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
           onChange={handleDateRangeChange}
           className="w-full"
         />
-        <p className="mt-1 text-xs text-gray-400">
-          Select a date range to filter weeks
-        </p>
       </div>
 
       {/* Status Dropdown */}
-      <div className="flex-1">
-        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-          Status
-        </label>
+      <div className="w-full md:w-auto">
         <select
           id="status"
           {...register("status")}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm text-gray-600"
         >
-          <option value="">All Status</option>
-          <option value="completed">COMPLETED</option>
-          <option value="incomplete">INCOMPLETE</option>
-          <option value="missing">MISSING</option>
+          {STATUS_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value} className="text-gray-600">
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
     </div>

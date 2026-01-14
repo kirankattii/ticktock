@@ -1,5 +1,6 @@
 import React from "react";
 import TableHeader, { type TableColumnConfig } from "../../../components/TableHeader";
+import Loader from "../../../components/Loader";
 
 export type TableColumn<T> = {
   key: keyof T | string;
@@ -33,10 +34,7 @@ export default function Table<T extends Record<string, any>>({
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-        <div className="flex justify-center items-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <span className="ml-3 text-gray-600">Loading...</span>
-        </div>
+        <Loader text="Loading..." className="justify-center" />
       </div>
     );
   }

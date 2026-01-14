@@ -1,10 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { format, parseISO, startOfWeek, addDays } from "date-fns";
 import toast from "react-hot-toast";
 import ManageModel from "./components/ManageModel";
 import Navbar from "../../components/Navbar";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import Loader from "../../components/Loader";
+import DropdownMenu from "../../components/DropdownMenu";
+import HoursProgress from "./components/HoursProgress";
+import { validateTaskPayload } from "../../utils/validation";
+import { formatDateLabel, formatWeekLabel } from "../../utils/dateFormat";
 import {
   addDailyTask,
   createOrGetWeeklyTimesheet,
@@ -20,11 +25,6 @@ type ModalState =
   | { mode: "add"; date: string }
   | { mode: "edit"; task: DailyTask }
   | null;
-
-const formatDateLabel = (date: string) => {
-  const parsedDate = parseISO(date);
-  return format(parsedDate, "MMM d");
-};
 
 const getWeekRange = () => {
   const now = new Date();
@@ -43,19 +43,6 @@ export default function WeeklyTimesheet() {
   const { start, end } = useMemo(() => getWeekRange(), []);
 
   const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenuTaskId(null);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
 
   useEffect(() => {
@@ -113,21 +100,9 @@ export default function WeeklyTimesheet() {
   const handleAdd = async (payload: DailyTaskPayload) => {
     if (!timesheet) return;
     try {
-      // Validation
-      if (!payload.description || !payload.description.trim()) {
-        toast.error("Task description is required");
-        return;
-      }
-      if (!payload.project || !payload.project.trim()) {
-        toast.error("Project name is required");
-        return;
-      }
-      if (!payload.typeOfWork || !payload.typeOfWork.trim()) {
-        toast.error("Type of work is required");
-        return;
-      }
-      if (!payload.hours || Number(payload.hours) <= 0) {
-        toast.error("Hours must be greater than 0");
+      const validation = validateTaskPayload(payload);
+      if (!validation.isValid) {
+        validation.errors.forEach((error) => toast.error(error));
         return;
       }
 
@@ -150,21 +125,9 @@ export default function WeeklyTimesheet() {
   const handleEdit = async (taskId: string, payload: DailyTaskPayload) => {
     if (!timesheet) return;
     try {
-      // Validation
-      if (!payload.description || !payload.description.trim()) {
-        toast.error("Task description is required");
-        return;
-      }
-      if (!payload.project || !payload.project.trim()) {
-        toast.error("Project name is required");
-        return;
-      }
-      if (!payload.typeOfWork || !payload.typeOfWork.trim()) {
-        toast.error("Type of work is required");
-        return;
-      }
-      if (!payload.hours || Number(payload.hours) <= 0) {
-        toast.error("Hours must be greater than 0");
+      const validation = validateTaskPayload(payload);
+      if (!validation.isValid) {
+        validation.errors.forEach((error) => toast.error(error));
         return;
       }
 
@@ -205,28 +168,22 @@ export default function WeeklyTimesheet() {
 
   const weekLabel = useMemo(() => {
     if (timesheet) {
-      const startDate = parseISO(timesheet.weekStartDate);
-      const endDate = parseISO(timesheet.weekEndDate);
-      return `${format(startDate, "MMM d")} - ${format(endDate, "MMM d, yyyy")}`;
+      return formatWeekLabel(timesheet.weekStartDate, timesheet.weekEndDate);
     }
-    return `${format(start, "MMM d")} - ${format(end, "MMM d, yyyy")}`;
+    return formatWeekLabel(start.toISOString(), end.toISOString());
   }, [timesheet, start, end]);
 
   return (
     <div>
       <Navbar />
       <div className="max-w-5xl mx-auto bg-white p-6 mt-6 rounded-xl shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Weekly Timesheet</h2>
-            <p className="text-sm text-gray-500 mb-6">{weekLabel}</p>
-            {/* <p className="text-xs text-gray-500">
-              Total hours: <span className="font-semibold text-gray-800">{timesheet?.totalHours || 0}</span>
-            </p> */}
-          </div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">This week's timesheet</h2>
+          <HoursProgress totalHours={timesheet?.totalHours || 0} />
         </div>
+            <p className="text-sm text-gray-500 mb-6">{weekLabel}</p>
 
-        {loading && <p className="mt-4 text-sm text-gray-500">Loading...</p>}
+        {loading && <Loader text="Loading..." className="justify-center mt-4" />}
 
         {!loading &&
           days.map((day) => {
@@ -244,8 +201,8 @@ export default function WeeklyTimesheet() {
                       className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-50 relative"
                     >
                       <div className="flex flex-col">
-                        <span className="text-sm text-gray-800">{task.description}</span>
-                        <span className="text-xs text-gray-500">{task.typeOfWork}</span>
+                        <span className="text-sm text-gray-800">{task.project}</span>
+                        <span className="text-xs text-gray-500">{task.description}</span>
                       </div>
 
                       <div className="flex items-center gap-4">
@@ -256,56 +213,45 @@ export default function WeeklyTimesheet() {
                         </span>
 
                         <div className="flex gap-2">
-                          <div className="relative" ref={menuRef}>
-                            {/* 3 dots button */}
-                            <button
-                              onClick={() =>
-                                setOpenMenuTaskId(openMenuTaskId === task._id ? null : task._id)
-                              }
-                              className="cursor-pointer p-1 rounded hover:bg-gray-100"
-                            >
-                              <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="text-gray-500"
+                          <DropdownMenu
+                            isOpen={openMenuTaskId === task._id}
+                            onClose={() => setOpenMenuTaskId(null)}
+                            items={[
+                              {
+                                label: "Edit",
+                                onClick: () => setModalState({ mode: "edit", task }),
+                              },
+                              {
+                                label: "Delete",
+                                onClick: () =>
+                                  setDeleteConfirm({
+                                    taskId: task._id,
+                                    taskDescription: task.description,
+                                  }),
+                                variant: "danger",
+                              },
+                            ]}
+                            trigger={
+                              <button
+                                onClick={() =>
+                                  setOpenMenuTaskId(openMenuTaskId === task._id ? null : task._id)
+                                }
+                                className="cursor-pointer p-1 rounded hover:bg-gray-100"
                               >
-                                <circle cx="5" cy="12" r="2" />
-                                <circle cx="12" cy="12" r="2" />
-                                <circle cx="19" cy="12" r="2" />
-                              </svg>
-                            </button>
-
-                            {/* Popover */}
-                            {openMenuTaskId === task._id && (
-                              <div className="absolute right-0 top-7 z-50 w-28 rounded-md border border-gray-200 bg-white shadow-md">
-                                <button
-                                  onClick={() => {
-                                    setModalState({ mode: "edit", task });
-                                    setOpenMenuTaskId(null);
-                                  }}
-                                  className="cursor-pointer w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 24 24"
+                                  fill="currentColor"
+                                  className="text-gray-500"
                                 >
-                                  Edit
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    setDeleteConfirm({
-                                      taskId: task._id,
-                                      taskDescription: task.description,
-                                    });
-                                    setOpenMenuTaskId(null);
-                                  }}
-                                  className="cursor-pointer w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-
+                                  <circle cx="5" cy="12" r="2" />
+                                  <circle cx="12" cy="12" r="2" />
+                                  <circle cx="19" cy="12" r="2" />
+                                </svg>
+                              </button>
+                            }
+                          />
                         </div>
                       </div>
                     </div>
